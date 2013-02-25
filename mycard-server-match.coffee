@@ -24,7 +24,7 @@ server = http.createServer (request, response)->
     response.connection.setTimeout(0)
   else
     s = settings.servers[0]
-    room = "mycard://#{s.ip}:#{s.port}/#{room_index}$#{Math.floor(Math.random()*1000)}"   #new Buffer("Hello World").toString('base64'));
+    room = "mycard://#{s.ip}:#{s.port}/M##{room_index}$#{Math.floor(Math.random()*1000)}"   #new Buffer("Hello World").toString('base64'));
     console.log "matched: #{room}"
     opponent_response = waiting.pop()
     opponent_response.end room
