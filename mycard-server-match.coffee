@@ -1,10 +1,12 @@
 http = require("http")
 url  = require("url")
 _    = require("underscore")
-settings = require("./config")
+spawn = require('child_process').spawn
+freeport = require('freeport')
+settings = require("./config.json")
 
-room_index = 0
 waiting = []
+rooms = {}
 server = http.createServer (request, response)->
   console.log "#{new Date()} Received request for #{request.url} from #{request.connection.remoteAddress})"
 
@@ -13,7 +15,6 @@ server = http.createServer (request, response)->
     response.end();
     return
 
-  response.writeHead(200, {"Content-Type": "application/json"})
   if waiting.length == 0
     waiting.push response
     request.connection.addListener 'close', ->
@@ -23,14 +24,21 @@ server = http.createServer (request, response)->
         console.log "#{new Date()} Peer #{request.connection.remoteAddress} disconnected during waiting."
     response.connection.setTimeout(0)
   else
-    s = settings.servers[0]
-    room = "mycard://#{s.ip}:#{s.port}/M##{room_index}$#{Math.floor(Math.random()*1000)}"   #new Buffer("Hello World").toString('base64'));
-    console.log "matched: #{room}"
     opponent_response = waiting.pop()
-    opponent_response.end room
-    response.end room
-    room_index = room_index + 1 % 100000
 
-
-
+    freeport (err, port)->
+      if(err)
+        response.writeHead(500)
+        response.end err
+        opponent_response.writeHead(500)
+        opponent_response.end err
+      else
+        room = spawn './ygopro', [port, 0, 0, 1, 'F', 'F', 'F', 8000, 5, 1], cwd: 'ygocore'#, detached: true
+        room.on 'exit', (code)->
+          console.log "room #{port} exited with code #{code}"
+        response.writeHead(200, {"Content-Type": "application/json"})
+        room = "mycard://#{settings.ip}:#{port}/"
+        console.log "matched: #{room}"
+        opponent_response.end room
+        response.end room
 .listen(settings.port)

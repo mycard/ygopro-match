@@ -1,0 +1,28 @@
+{
+    "name": "mycard-server",
+    "version": "2.0.1",
+    "description": "a high performance server to match duel for ygoserver",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zh99998/mycard-server-match.git"
+    },
+    "keywords": [
+        "mycard",
+        "ygopro",
+        "server"
+    ],
+    "author": "zh99998 <zh99998@gmail.com>",
+    "dependencies": {
+        "underscore": "*",
+        "freeport": "*"
+    },
+    "license": "GPLv3",
+    "main": "mycard-server-match.js",
+    "scripts": {
+        "start": "forever start mycard-server-match.js",
+        "build": "coffee -c mycard-server-match.coffee"
+    },
+    "engines": {
+        "node": "*"
+    }
+}
