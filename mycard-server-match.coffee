@@ -1,14 +1,25 @@
-http = require("http")
-url  = require("url")
-_    = require("underscore")
+http = require "http"
+url  = require "url"
+path = require 'path'
+fs = require 'fs'
 spawn = require('child_process').spawn
-freeport = require('freeport')
-settings = require("./config.json")
 
+_    = require "underscore"
+freeport = require 'freeport'
+Inotify = require('inotify').Inotify
+inotify = new Inotify()
+
+settings = require "./config.json"
+
+
+#match
 waiting = []
 rooms = {}
 server = http.createServer (request, response)->
-  console.log "#{new Date()} Received request for #{request.url} from #{request.connection.remoteAddress})"
+  if url.parse(request.url).pathname == '/count.json'
+    response.writeHead(200);
+    response.end(_.keys(rooms).length.toString())
+    return
 
   if url.parse(request.url).pathname != '/match.json'
     response.writeHead(404);
@@ -33,8 +44,11 @@ server = http.createServer (request, response)->
         opponent_response.writeHead(500)
         opponent_response.end err
       else
-        room = spawn './ygopro', [port, 0, 0, 1, 'F', 'F', 'F', 8000, 5, 1], cwd: 'ygocore'#, detached: true
+        room = spawn './ygopro', [port, 0, 0, 1, 'F', 'F', 'F', 8000, 5, 1], cwd: 'ygocore'
+        room.alive = true
+        rooms[port] = room
         room.on 'exit', (code)->
+          delete rooms[port]
           console.log "room #{port} exited with code #{code}"
         response.writeHead(200, {"Content-Type": "application/json"})
         room = "mycard://#{settings.ip}:#{port}/"
@@ -42,3 +56,34 @@ server = http.createServer (request, response)->
         opponent_response.end room
         response.end room
 .listen(settings.port)
+
+
+inotify.addWatch
+  path: 'ygocore/replay',
+  watch_for: Inotify.IN_CLOSE_WRITE | Inotify.IN_CREATE | Inotify.IN_MODIFY,
+  callback: (event)->
+    mask = event.mask
+    if event.name
+      port = parseInt path.basename(event.name, '.yrp')
+      room = rooms[port]
+      if room
+        if mask & Inotify.IN_CREATE
+          console.log "#{port} duel start"
+          #welcome message coding here
+        else if mask & Inotify.IN_CLOSE_WRITE
+          console.log "#{port} duel end"
+          #parse replay coding here
+          fs.unlink path.join('ygocore/replay'), (err)->
+        else if mask & Inotify.IN_MODIFY
+          room.alive = true
+    else
+      console.log '[warn] event without filename'
+
+setInterval ()->
+  for port, room of rooms
+    if room.alive
+      room.alive = false
+    else
+      console.log "killed #{port} #{room}"
+      room.kill()
+, 900000
