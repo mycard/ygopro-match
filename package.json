@@ -1,6 +1,6 @@
 {
-    "name": "mycard-server",
-    "version": "2.0.1",
+    "name": "mycard-server-match",
+    "version": "2.0.2",
     "description": "a high performance server to match duel for ygoserver",
     "repository": {
         "type": "git",
@@ -14,7 +14,8 @@
     "author": "zh99998 <zh99998@gmail.com>",
     "dependencies": {
         "underscore": "*",
-        "freeport": "*"
+        "freeport": "*",
+        "inotify": "*"
     },
     "license": "GPLv3",
     "main": "mycard-server-match.js",

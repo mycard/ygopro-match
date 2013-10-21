@@ -16,13 +16,19 @@ settings = require "./config.json"
 waiting = []
 rooms = {}
 server = http.createServer (request, response)->
+  headers = {"Access-Control-Allow-Origin":"*","Content-Type": "text/plain"}
+  if request.method == 'OPTIONS'
+    response.writeHead(204, headers);
+    response.end();
+
+  
   if url.parse(request.url).pathname == '/count.json'
-    response.writeHead(200);
+    response.writeHead(200,headers);
     response.end(_.keys(rooms).length.toString())
     return
 
   if url.parse(request.url).pathname != '/match.json'
-    response.writeHead(404);
+    response.writeHead(404,headers);
     response.end();
     return
 
@@ -39,9 +45,9 @@ server = http.createServer (request, response)->
 
     freeport (err, port)->
       if(err)
-        response.writeHead(500)
+        response.writeHead(500,headers)
         response.end err
-        opponent_response.writeHead(500)
+        opponent_response.writeHead(500,headers)
         opponent_response.end err
       else
         room = spawn './ygopro', [port, 0, 0, 1, 'F', 'F', 'F', 8000, 5, 1], cwd: 'ygocore'
@@ -50,11 +56,13 @@ server = http.createServer (request, response)->
         room.on 'exit', (code)->
           delete rooms[port]
           console.log "room #{port} exited with code #{code}"
-        response.writeHead(200, {"Content-Type": "application/json"})
         room = "mycard://#{settings.ip}:#{port}/"
         console.log "matched: #{room}"
-        opponent_response.end room
+        response.writeHead(200, headers)
         response.end room
+        opponent_response.writeHead(200, headers)
+        opponent_response.end room
+
 .listen(settings.port)
 
 
