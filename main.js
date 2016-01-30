@@ -30,7 +30,7 @@ http.createServer((req, res) => {
     if (pending) {
         let server = servers[Math.floor(Math.random() * servers.length)];
 
-        let room_id = crypto.randomBytes(9).toString('base64').slice(0, 11);
+        let room_id = crypto.randomBytes(9).toString('base64').slice(0, 11).replace('+','-').replace('/', '_');
         let options_buffer = new Buffer(6);
         options_buffer.writeUInt8(4 << 4, 1);
         let checksum = 0;
