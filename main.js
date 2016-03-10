@@ -4,7 +4,7 @@ const http = require('http');
 const crypto = require('crypto');
 
 let servers = [{
-    "address": "122.0.65.73",
+    "address": "112.124.105.11",
     "port": 7911
 }];
 
