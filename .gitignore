@@ -1,10 +1,4 @@
-#################
-## Jetbrains
-#################
-
-/.idea/
-
-#################
-## Node
-#################
-/node_modules/
+.gitignore
+config.json
+node_modules/
+.idea/

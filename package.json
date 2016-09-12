@@ -1,7 +1,13 @@
 {
   "name": "ygopro-match",
-  "version": "1.0.0",
-  "scripts":  {
-    "start": "node main.js"
+  "version": "0.0.1a",
+  "author": "zh99998 & pandaiami",
+  "scripts": {
+    "start": "node main.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "request": ">=2.74.0",
+    "crypto": ">=0.0.3"
   }
 }
