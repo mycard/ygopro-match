@@ -4,6 +4,7 @@ const request = require('request');
 const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
+const url = require('url');
 
 const config = JSON.parse(fs.readFileSync("./config.json"));
 let athleticUserPool = [];
@@ -17,7 +18,7 @@ let getUserConfig = function(user, callback) {
     request.get(address + user.username, function (err, res, body) {
         if (res.statusCode != 200)
         {
-            console.log ("failed to load user data for #{user}");
+            console.log ("failed to load user data for " + user + " with code " + res.statusCode);
         }
         else
         {
@@ -34,7 +35,6 @@ let getUserConfig = function(user, callback) {
 
 // TrueSkill
 // 参考于 https://zh.wikipedia.org/zh-hans/TrueSkill评分系统
-
 let athleticTrueSkillMatchPoint = function (userA, userB) {
     let trueSkillA = userA.trueskill;
     let trueSkillB = userB.trueskill;
@@ -69,8 +69,8 @@ let updateAthleticMatch = function() {
         if (masks[value.i] || masks[value.j])
             continue;
         pair(athleticUserPool[value.i].client, athleticUserPool[value.j].client);
-        masks[i] = true;
-        masks[j] = true;
+        masks[value.i] = true;
+        masks[value.j] = true;
     }
     // 移除用户
     let newPool = [];
@@ -131,6 +131,7 @@ let pair = function (userARes, userBRes) {
         checksum -= options_buffer.readUInt8(i)
     }
     options_buffer.writeUInt8(checksum & 0xFF, 0);
+    console.log(userARes.username + " and " + userBRes.username + " matched on room " + room_id);
     for (let client of [userARes, userBRes])
     {
         let buffer = new Buffer(6);
@@ -144,10 +145,36 @@ let pair = function (userARes, userBRes) {
             "port": server.port,
             "password": password
         });
-        console.log(userARes.username + " and " + userBRes.username + " matched on room " + room_id);
         client.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
         client.end(result);
     }
+};
+
+// 将用户加入待回池
+let joinPool = function (res, data, pool) {
+    // 辣鸡性能，先迁就前面的 TrueSKill 算法
+    for(let i = 0; i < pool.length; i++)
+    {
+        let user = pool[i];
+        if (user.client.username === res.username)
+        {
+            rejectUser(user.client);
+            // 脏
+            pool.splice(i, 1);
+            i -= 1;
+        }
+    }
+    pool.push({
+        client: res,
+        data: data
+    });
+};
+
+// 当用户双开时，回绝之
+let rejectUser = function(res) {
+    console.log(res.username + " is kicked for over 1 client requested.");
+    res.statusCode = 409;
+    res.end();
 };
 
 // 创建服务器
@@ -161,28 +188,30 @@ http.createServer((req, res) => {
         if (!username || !password) {
             throw 'auth';
         }
-        console.log(username + ' apply for a match.');
+        let arg = url.parse(req.url, true).query;
+        if (!arg.arena) arg.arena = 'entertain';
+        console.log(username + ' apply for a ' + arg.arena + ' match.');
         res.username = username;
         res.password = password;
         // 送读取数据
-        getUserConfig(res, (ans) => {
-            athleticUserPool.push({client: res, data: ans});
-        });
+        // 如果收到了奇怪的数据，一概认为是娱乐对局
+        if (arg.arena == 'athletic')
+            getUserConfig(res, (ans) => {
+                joinPool(res, ans, athleticUserPool);
+            });
+        else
+            getUserConfig(res, (ans) => {
+                joinPool(res, ans, entertainUserPool);
+            });
     }
     catch (error)
     {
-        res.statusCode = 403;
+        console.log(error);
+        res.statusCode = 500;
         res.end();
         return;
     }
 
-});
+}).listen(1025);
 
 setInterval(update, config.match.timeInterval);
-
-getUserConfig({username: "userA"}, (ans) => {
-    entertainUserPool.push({client: {}, data: ans});
-});
-getUserConfig({username: "userB"}, (ans) => {
-    entertainUserPool.push({client: {}, data: ans});
-});
