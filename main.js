@@ -19,6 +19,8 @@ let getUserConfig = function(user, callback) {
         if (res.statusCode != 200)
         {
             console.log ("failed to load user data for " + user + " with code " + res.statusCode);
+            // Kick out
+            errorUser(res);
         }
         else
         {
@@ -176,6 +178,13 @@ let rejectUser = function(res) {
     res.statusCode = 409;
     res.end();
 };
+
+// 当没有正确收到消息时，
+let errorUser = function(res) {
+    console.log(res.username + " errored for get user information.");
+    res.statusCode = 400;
+    res.end();
+}
 
 // 创建服务器
 http.createServer((req, res) => {
