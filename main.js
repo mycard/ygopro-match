@@ -18,13 +18,14 @@ let getUserConfig = function(user, callback) {
     request.get(address + user.username, function (err, res, body) {
         if (err)
         {
-            console.log ("failed to load user data for" + user + "for error" + err);
+            console.log ("failed to load user data for" + user.username + "for error" + err);
             // Kick out
             errorUser(user);
         }
         else if (res.statusCode != 200)
         {
-            console.log ("failed to load user data for " + user + " with code " + res.statusCode);
+            console.log ("failed to load user data for " + user.username + " with code " + res.statusCode);
+            console.log("response: " + res);
             // Kick out
             errorUser(user);
         }
@@ -36,7 +37,7 @@ let getUserConfig = function(user, callback) {
             }
             catch(e)
             {
-                console.log("failed to call back user " + user);
+                console.log("failed to call back user " + user.username);
                 console.log(e);
                 errorUser(user);
             }
