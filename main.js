@@ -16,7 +16,13 @@ let getUserConfig = function(user, callback) {
     let address = config.arena.address;
     // let ak = config.arena.ak;
     request.get(address + user.username, function (err, res, body) {
-        if (res.statusCode != 200)
+        if (err)
+        {
+            console.log ("failed to load user data for" + user + "for error" + res.error);
+            // Kick out
+            errorUser(res);
+        }
+        else if (res.statusCode != 200)
         {
             console.log ("failed to load user data for " + user + " with code " + res.statusCode);
             // Kick out
@@ -30,7 +36,8 @@ let getUserConfig = function(user, callback) {
             }
             catch(e)
             {
-                console.log("failed to call back user " + res.username);
+                console.log("failed to call back user " + user)
+                console.log(e);
                 errorUser(res);
             }
         }
