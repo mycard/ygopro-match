@@ -18,7 +18,7 @@ let getUserConfig = function(user, callback) {
     request.get(address + user.username, function (err, res, body) {
         if (err)
         {
-            console.log ("failed to load user data for" + user + "for error" + res.error);
+            console.log ("failed to load user data for" + user + "for error" + err);
             // Kick out
             errorUser(user);
         }
