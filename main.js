@@ -20,13 +20,13 @@ let getUserConfig = function(user, callback) {
         {
             console.log ("failed to load user data for" + user + "for error" + res.error);
             // Kick out
-            errorUser(res);
+            errorUser(user);
         }
         else if (res.statusCode != 200)
         {
             console.log ("failed to load user data for " + user + " with code " + res.statusCode);
             // Kick out
-            errorUser(res);
+            errorUser(user);
         }
         else
         {
@@ -38,7 +38,7 @@ let getUserConfig = function(user, callback) {
             {
                 console.log("failed to call back user " + user)
                 console.log(e);
-                errorUser(res);
+                errorUser(user);
             }
         }
     });
@@ -188,6 +188,7 @@ let joinPool = function (res, data, pool) {
 };
 
 // 当用户双开时，回绝之
+let rejectUser = function(res) {
 let rejectUser = function(res) {
     console.log(res.username + " is kicked for over 1 client requested.");
     res.statusCode = 409;
