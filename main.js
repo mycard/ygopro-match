@@ -24,7 +24,15 @@ let getUserConfig = function(user, callback) {
         }
         else
         {
-            callback(JSON.parse(body));
+            try {
+                let value = JSON.parse(body);
+                callback(value);
+            }
+            catch(e)
+            {
+                console.log("failed to call back user " + res.username);
+                errorUser(res);
+            }
         }
     });
     /*
