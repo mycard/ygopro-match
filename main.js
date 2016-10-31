@@ -24,8 +24,14 @@ let getUserConfig = function(user, callback) {
         }
         else if (res.statusCode != 200)
         {
-            console.log ("failed to load user data for " + user.username + " with code " + res.statusCode);
-            console.log("response: " + res);
+            try {
+                console.log("failed to load user data for " + user.username + " with code " + res.statusCode);
+                console.log("response: " + JSON.stringify(res) + "\nBODY: " + body);
+            }
+            catch(e)
+            {
+
+            }
             // Kick out
             errorUser(user);
         }
