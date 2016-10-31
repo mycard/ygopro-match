@@ -36,7 +36,7 @@ let getUserConfig = function(user, callback) {
             }
             catch(e)
             {
-                console.log("failed to call back user " + user)
+                console.log("failed to call back user " + user);
                 console.log(e);
                 errorUser(user);
             }
@@ -188,7 +188,6 @@ let joinPool = function (res, data, pool) {
 };
 
 // 当用户双开时，回绝之
-let rejectUser = function(res) {
 let rejectUser = function(res) {
     console.log(res.username + " is kicked for over 1 client requested.");
     res.statusCode = 409;
