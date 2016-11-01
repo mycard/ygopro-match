@@ -15,7 +15,7 @@ let getUserConfig = function(user, callback) {
     // 原 HTTP POST 抓取数据保留
     let address = config.arena.address;
     // let ak = config.arena.ak;
-    request.get(address + user.username, function (err, res, body) {
+    request.get(address + encodeURIComponent(user.username), function (err, res, body) {
         if (err)
         {
             console.log ("failed to load user data for" + user.username + "for error" + err);
