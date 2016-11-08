@@ -104,6 +104,37 @@ let updateAthleticMatch = function() {
     athleticUserPool = newPool;
 };
 
+// 依照 PT 暂时重新计算竞技玩家池
+updateAthleticMatch = function () {
+    let length = athleticUserPool.length;
+    if (length < 2) return;
+    athleticUserPool.sort((a, b) => b.pt - a.pt);
+    let newPool = [];
+    for (let i = 0; i < length; i++)
+    {
+        let userA = athleticUserPool[i];
+        let userB = athleticUserPool[i + 1];
+        // 移出边界时的处理
+        if (userA === undefined)
+            break;
+        if (userB === undefined)
+        {
+            newPool.push(userA);
+            break;
+        }
+        // 若 exp 之差小于门限，则匹配房间
+        if (userA.data.pt - userB.data.pt < config.match.atheleticPtGate)
+        {
+            pair(userA.client, userB.client);
+            i += 1;
+        }
+        // 否则留存
+        else
+            newPool.add(userA);
+    }
+    athleticUserPool = newPool;
+}
+
 // 刷新娱乐玩家池
 let updateEntertainMatch = function () {
     let length = entertainUserPool.length;
