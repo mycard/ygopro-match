@@ -9,6 +9,7 @@ const url = require('url');
 const config = JSON.parse(fs.readFileSync("./config.json"));
 let athleticUserPool = [];
 let entertainUserPool = [];
+let deadUserPool = [];
 
 let getUserConfig = function(user, callback) {
     // HTTP GET 抓取数据。
@@ -208,13 +209,21 @@ let pair = function (userARes, userBRes) {
 // 将用户加入待回池
 let joinPool = function (res, data, pool) {
     // 辣鸡性能，先迁就前面的 TrueSKill 算法
+    // 检查用户是否已被挂黑名单
+    let index = deadUserPool.indexOf(res);
+    if (index > 0)
+    {
+        console.log(res.username + " has closed the connection. Reject joining the pool.")
+        deadUserPool.splice(index, 1);
+        return;
+    }
+    // 检查用户是否已在匹配池中
     for(let i = 0; i < pool.length; i++)
     {
         let user = pool[i];
         if (user.client.username === res.username)
         {
             rejectUser(user.client);
-            // 脏
             pool.splice(i, 1);
             i -= 1;
         }
@@ -239,6 +248,23 @@ let errorUser = function(res) {
     res.end();
 }
 
+// 当用户断开连接时
+let closedUser = function (res, pool) {
+    let index = -1;
+    // 查询用户是否已在匹配池中
+    for(let i = 0; i < pool.length; i++)
+        if (pool[i].client == res)
+            index = i;
+    // 若用户已在匹配池中，移除
+    if (index >= 0) {
+        console.log(res.username + " has closed the connection. Removed from the pool.");
+        pool.splice(index, 1);
+    }
+    // 若用户未在匹配池中，挂黑名单
+    else
+        deadUserPool.push(res);
+}
+
 // 创建服务器
 http.createServer((req, res) => {
     try
@@ -255,16 +281,20 @@ http.createServer((req, res) => {
         console.log(username + ' apply for a ' + arg.arena + ' match.');
         res.username = username;
         res.password = password;
+        // 选择匹配池
+        let pool = null;
+        if (arg.arena == 'athletic')
+            pool = athleticUserPool;
+        else
+            pool = entertainUserPool;
+        // 如果连接断开了，把它从匹配池中移除
+        res.on('close', () => { closedUser(res, pool); });
         // 送读取数据
         // 如果收到了奇怪的数据，一概认为是娱乐对局
-        if (arg.arena == 'athletic')
-            getUserConfig(res, (ans) => {
-                joinPool(res, ans, athleticUserPool);
-            });
-        else
-            getUserConfig(res, (ans) => {
-                joinPool(res, ans, entertainUserPool);
-            });
+        getUserConfig(res, (ans) => {
+            joinPool(res, ans, pool);
+        });
+
     }
     catch (error)
     {
