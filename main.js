@@ -93,7 +93,7 @@ let updateAthleticMatch = function() {
             break;
         if (masks[value.i] || masks[value.j])
             continue;
-        pair(athleticUserPool[value.i].client, athleticUserPool[value.j].client);
+        pair(athleticUserPool[value.i].client, athleticUserPool[value.j].client, 'athletic');
         masks[value.i] = true;
         masks[value.j] = true;
     }
@@ -126,7 +126,7 @@ updateAthleticMatch = function () {
         // 若 exp 之差小于门限，则匹配房间
         if (userA.data.pt - userB.data.pt < config.match.atheleticPtGate)
         {
-            pair(userA.client, userB.client);
+            pair(userA.client, userB.client, 'athletic');
             i += 1;
         }
         // 否则留存
@@ -160,7 +160,7 @@ let updateEntertainMatch = function () {
         // 若 exp 之差小于门限，则匹配房间
         if (userA.data.exp - userB.data.exp < config.match.entertainExpGate)
         {
-            pair(userA.client, userB.client);
+            pair(userA.client, userB.client, 'entertain');
             i += 1;
         }
         // 否则留存
@@ -176,9 +176,11 @@ let update = function () {
 };
 
 // 为两名玩家匹配房间
-let pair = function (userARes, userBRes) {
+let pair = function (userARes, userBRes, serverName) {
     let servers = config.servers;
-    let server = servers[Math.floor(Math.random() * servers.length)];
+    let server = servers[serverName];
+    if (Object.prototype.toString.call(server) === '[object Array]')
+        server = server[Math.random() * server.length]
     let room_id = crypto.randomBytes(9).toString('base64').slice(0, 11).replace('+', '-').replace('/', '_');
     let options_buffer = new Buffer(6);
     options_buffer.writeUInt8(4 << 4, 1);

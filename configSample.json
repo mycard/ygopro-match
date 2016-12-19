@@ -1,0 +1,21 @@
+{
+  "servers": {
+    "entertain": {
+      "address": "127.0.0.1",
+      "port": "9999"
+    },
+    "athletic": {
+      "address": "127.0.0.1",
+      "port": "9998"
+    }
+  },
+  "arena": {
+    "address": "http://path/to/query?username="
+  },
+  "match": {
+    "timeInterval": 10000,
+    "athleticTrueSkillGate": 0.4,
+    "entertainExpGate": 100,
+    "atheleticPtGate": 50
+  }
+}
