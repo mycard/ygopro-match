@@ -165,7 +165,7 @@ let updateEntertainMatch = function () {
         }
         // 否则留存
         else
-            newPool.add(userA);
+            newPool.push(userA);
     }
     entertainUserPool = newPool;
 };
