@@ -268,7 +268,7 @@ let closedUser = function (res, pool) {
 }
 
 // 创建服务器
-http.createServer((req, res) => {
+const server = http.createServer((req, res) => {
     try
     {
         // 读取数据
@@ -306,6 +306,9 @@ http.createServer((req, res) => {
         return;
     }
 
-}).listen(1025);
+})
+server.timeout = 0
+server.listen(1025);
 
 setInterval(update, config.match.timeInterval);
+
