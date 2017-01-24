@@ -141,7 +141,7 @@ let updateEntertainMatch = function () {
     let length = entertainUserPool.length;
     if (length < 2) return;
     // 根据用户等级进行排序
-    entertainUserPool.sort((a, b) => b.level - a.level);
+    entertainUserPool.sort((a, b) => b.data.exp - a.data.exp);
     // 从高到低进行贪心配对
     let newPool = [];
     // TODO: 加入时间分界
