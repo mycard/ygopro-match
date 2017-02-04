@@ -11,50 +11,49 @@ let athleticUserPool = [];
 let entertainUserPool = [];
 let deadUserPool = [];
 
-let getUserConfig = function(user, callback) {
+let localLog = function (content) {
+    console.log("[" + new Date().toLocaleString() + "] " + content)
+}
+
+let getUserConfig = function (user, callback) {
     // HTTP GET 抓取数据。
     // 原 HTTP POST 抓取数据保留
     let address = config.arena.address;
     // let ak = config.arena.ak;
     request.get(address + encodeURIComponent(user.username), function (err, res, body) {
-        if (err)
-        {
-            console.log ("failed to load user data for" + user.username + "for error" + err);
+        if (err) {
+            localLog("failed to load user data for" + user.username + "for error" + err);
             // Kick out
             errorUser(user);
         }
-        else if (res.statusCode != 200)
-        {
+        else if (res.statusCode != 200) {
             try {
-                console.log("failed to load user data for " + user.username + " with code " + res.statusCode);
-                console.log("response: " + JSON.stringify(res) + "\nBODY: " + body);
+                localLog("failed to load user data for " + user.username + " with code " + res.statusCode);
+                localLog("response: " + JSON.stringify(res) + "\nBODY: " + body);
             }
-            catch(e)
-            {
+            catch (e) {
 
             }
             // Kick out
             errorUser(user);
         }
-        else
-        {
+        else {
             try {
                 let value = JSON.parse(body);
                 callback(value);
             }
-            catch(e)
-            {
-                console.log("failed to call back user " + user.username);
-                console.log(e);
+            catch (e) {
+                localLog("failed to call back user " + user.username);
+                localLog(e);
                 errorUser(user);
             }
         }
     });
     /*
-    request.post(address, {form:{ ak, username: user.username, password: user.password }}, function (err, res, body) {
-        callback();
-    });
-    */
+     request.post(address, {form:{ ak, username: user.username, password: user.password }}, function (err, res, body) {
+     callback();
+     });
+     */
 };
 
 
@@ -69,7 +68,7 @@ let athleticTrueSkillMatchPoint = function (userA, userB) {
 };
 
 // 刷新竞技玩家池
-let updateAthleticMatch = function() {
+let updateAthleticMatch = function () {
     let length = athleticUserPool.length;
     // 数量少于 2，什么都不做
     if (length < 2) return;
@@ -78,9 +77,13 @@ let updateAthleticMatch = function() {
     for (let i = 0; i < length; i++)
         for (let j = 0; j < length; j++)
             if (i === j)
-                values[length * j + i] = { i, j, value: 0 };
+                values[length * j + i] = {i, j, value: 0};
             else
-                values[length * j + i] = { i, j, value: athleticTrueSkillMatchPoint(athleticUserPool[i].data, athleticUserPool[j].data) };
+                values[length * j + i] = {
+                    i,
+                    j,
+                    value: athleticTrueSkillMatchPoint(athleticUserPool[i].data, athleticUserPool[j].data)
+                };
     // 含参排序
     values.sort((a, b) => b.value - a.value);
     // 生成 mask 表
@@ -111,21 +114,18 @@ updateAthleticMatch = function () {
     if (length < 2) return;
     athleticUserPool.sort((a, b) => b.pt - a.pt);
     let newPool = [];
-    for (let i = 0; i < length; i++)
-    {
+    for (let i = 0; i < length; i++) {
         let userA = athleticUserPool[i];
         let userB = athleticUserPool[i + 1];
         // 移出边界时的处理
         if (userA === undefined)
             break;
-        if (userB === undefined)
-        {
+        if (userB === undefined) {
             newPool.push(userA);
             break;
         }
         // 若 exp 之差小于门限，则匹配房间
-        if (userA.data.pt - userB.data.pt < config.match.atheleticPtGate)
-        {
+        if (userA.data.pt - userB.data.pt < config.match.atheleticPtGate) {
             pair(userA.client, userB.client, 'athletic');
             i += 1;
         }
@@ -145,21 +145,18 @@ let updateEntertainMatch = function () {
     // 从高到低进行贪心配对
     let newPool = [];
     // TODO: 加入时间分界
-    for (let i = 0; i < length; i++)
-    {
+    for (let i = 0; i < length; i++) {
         let userA = entertainUserPool[i];
         let userB = entertainUserPool[i + 1];
         // 移出边界时的处理
         if (userA === undefined)
             break;
-        if (userB === undefined)
-        {
+        if (userB === undefined) {
             newPool.push(userA);
             break;
         }
         // 若 exp 之差小于门限，则匹配房间
-        if (userA.data.exp - userB.data.exp < config.match.entertainExpGate)
-        {
+        if (userA.data.exp - userB.data.exp < config.match.entertainExpGate) {
             pair(userA.client, userB.client, 'entertain');
             i += 1;
         }
@@ -189,9 +186,8 @@ let pair = function (userARes, userBRes, serverName) {
         checksum -= options_buffer.readUInt8(i)
     }
     options_buffer.writeUInt8(checksum & 0xFF, 0);
-    console.log(userARes.username + " and " + userBRes.username + " matched on room " + room_id);
-    for (let client of [userARes, userBRes])
-    {
+    localLog(userARes.username + " and " + userBRes.username + " matched on room " + room_id);
+    for (let client of [userARes, userBRes]) {
         let buffer = new Buffer(6);
         let secret = parseInt(client.password) % 65535 + 1;
         for (let i = 0; i < options_buffer.length; i += 2) {
@@ -213,18 +209,15 @@ let joinPool = function (res, data, pool) {
     // 辣鸡性能，先迁就前面的 TrueSKill 算法
     // 检查用户是否已被挂黑名单
     let index = deadUserPool.indexOf(res);
-    if (index > 0)
-    {
-        console.log(res.username + " has closed the connection. Reject joining the pool.")
+    if (index > 0) {
+        localLog(res.username + " has closed the connection. Reject joining the pool.")
         deadUserPool.splice(index, 1);
         return;
     }
     // 检查用户是否已在匹配池中
-    for(let i = 0; i < pool.length; i++)
-    {
+    for (let i = 0; i < pool.length; i++) {
         let user = pool[i];
-        if (user.client.username === res.username)
-        {
+        if (user.client.username === res.username) {
             rejectUser(user.client);
             pool.splice(i, 1);
             i -= 1;
@@ -237,15 +230,15 @@ let joinPool = function (res, data, pool) {
 };
 
 // 当用户双开时，回绝之
-let rejectUser = function(res) {
-    console.log(res.username + " is kicked for over 1 client requested.");
+let rejectUser = function (res) {
+    localLog(res.username + " is kicked for over 1 client requested.");
     res.statusCode = 409;
     res.end();
 };
 
 // 当没有正确收到消息时，
-let errorUser = function(res) {
-    console.log(res.username + " errored for get user information.");
+let errorUser = function (res) {
+    localLog(res.username + " errored for get user information.");
     res.statusCode = 400;
     res.end();
 }
@@ -254,7 +247,7 @@ let errorUser = function(res) {
 let closedUser = function (res, pool) {
     let index = -1;
     // 查询用户是否已在匹配池中
-    for(let i = 0; i < pool.length; i++)
+    for (let i = 0; i < pool.length; i++)
         if (pool[i].client == res)
             index = i;
     // 若用户已在匹配池中，移除
@@ -269,8 +262,7 @@ let closedUser = function (res, pool) {
 
 // 创建服务器
 const server = http.createServer((req, res) => {
-    try
-    {
+    try {
         // 读取数据
         let credentials = new Buffer(req.headers['authorization'].split(' ')[1], 'base64').toString().split(':');
         let username = credentials[0];
@@ -280,7 +272,7 @@ const server = http.createServer((req, res) => {
         }
         let arg = url.parse(req.url, true).query;
         if (!arg.arena) arg.arena = 'entertain';
-        console.log(username + ' apply for a ' + arg.arena + ' match.');
+        localLog(username + ' apply for a ' + arg.arena + ' match.');
         res.username = username;
         res.password = password;
         // 选择匹配池
@@ -290,7 +282,9 @@ const server = http.createServer((req, res) => {
         else
             pool = entertainUserPool;
         // 如果连接断开了，把它从匹配池中移除
-        res.on('close', () => { closedUser(res, pool); });
+        res.on('close', () => {
+            closedUser(res, pool);
+        });
         // 送读取数据
         // 如果收到了奇怪的数据，一概认为是娱乐对局
         getUserConfig(res, (ans) => {
@@ -298,9 +292,8 @@ const server = http.createServer((req, res) => {
         });
 
     }
-    catch (error)
-    {
-        console.log(error);
+    catch (error) {
+        localLog(error);
         res.statusCode = 500;
         res.end();
         return;
