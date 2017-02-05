@@ -252,7 +252,7 @@ let closedUser = function (res, pool) {
             index = i;
     // 若用户已在匹配池中，移除
     if (index >= 0) {
-        console.log(res.username + " has closed the connection. Removed from the pool.");
+        localLog(res.username + " has closed the connection. Removed from the pool.");
         pool.splice(index, 1);
     }
     // 若用户未在匹配池中，挂黑名单
