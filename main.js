@@ -178,7 +178,7 @@ let pair = function (userARes, userBRes, serverName) {
     let server = servers[serverName];
     if (Object.prototype.toString.call(server) === '[object Array]')
         server = server[Math.random() * server.length]
-    let room_id = crypto.randomBytes(9).toString('base64').slice(0, 11).replace('+', '-').replace('/', '_');
+    let room_id = crypto.randomBytes(6).toString('base64').slice(0, 11).replace('+', '-').replace('/', '_');
     let options_buffer = new Buffer(6);
     options_buffer.writeUInt8(4 << 4, 1);
     let checksum = 0;
