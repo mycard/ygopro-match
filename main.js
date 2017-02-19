@@ -10,6 +10,8 @@ const config = JSON.parse(fs.readFileSync("./config.json"));
 let athleticUserPool = [];
 let entertainUserPool = [];
 let deadUserPool = [];
+let predictedEntertainTime = 180, predictedAthleticTime = 180;
+let entertainRequestCountInTime = 0, athleticRequestCountInTime = 0;
 
 let localLog = function (content) {
     console.log("[" + new Date().toLocaleString() + "] " + content)
@@ -260,6 +262,25 @@ let closedUser = function (res, pool) {
         deadUserPool.push(res);
 }
 
+// 计算预期时间
+let calculatePredictedTime = function() {
+    if (entertainRequestCountInTime == 0)
+        predictedEntertainTime = 180;
+    else {
+        predictedEntertainTime = 600 / entertainRequestCountInTime;
+        entertainRequestCountInTime = 0;
+    }
+    localLog("entertain adjust predicted time to " + predictedEntertainTime + "s.");
+    if (athleticRequestCountInTime == 0)
+        predictedAthleticTime = 180;
+    else {
+        predictedAthleticTime = 600 / athleticRequestCountInTime;
+        athleticRequestCountInTime = 0;
+    }
+    localLog("athletic adjust predicted time to " + predictedAthleticTime + "s.");
+};
+setInterval(calculatePredictedTime, 600000);
+
 // 创建服务器
 const server = http.createServer((req, res) => {
     try {
@@ -290,7 +311,9 @@ const server = http.createServer((req, res) => {
         getUserConfig(res, (ans) => {
             joinPool(res, ans, pool);
         });
-
+        // 统计器
+        if (arg.arena == 'athletic') athleticRequestCountInTime += 1;
+        else entertainRequestCountInTime += 1;
     }
     catch (error) {
         localLog(error);
@@ -298,7 +321,6 @@ const server = http.createServer((req, res) => {
         res.end();
         return;
     }
-
 })
 server.timeout = 0
 server.listen(1025);
