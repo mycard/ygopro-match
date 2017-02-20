@@ -10,7 +10,7 @@ const config = JSON.parse(fs.readFileSync("./config.json"));
 let athleticUserPool = [];
 let entertainUserPool = [];
 let deadUserPool = [];
-let predictedEntertainTime = 180, predictedAthleticTime = 180;
+let predictedEntertainTime = 600, predictedAthleticTime = 600;
 let entertainRequestCountInTime = 0, athleticRequestCountInTime = 0;
 
 let localLog = function (content) {
@@ -265,24 +265,23 @@ let closedUser = function (res, pool) {
 // 计算预期时间
 let calculatePredictedTime = function() {
     if (entertainRequestCountInTime == 0)
-        predictedEntertainTime = 180;
+        predictedEntertainTime = 600;
     else {
         predictedEntertainTime = 600 / entertainRequestCountInTime;
         entertainRequestCountInTime = 0;
     }
     localLog("entertain adjust predicted time to " + predictedEntertainTime + "s.");
     if (athleticRequestCountInTime == 0)
-        predictedAthleticTime = 180;
+        predictedAthleticTime = 600;
     else {
         predictedAthleticTime = 600 / athleticRequestCountInTime;
         athleticRequestCountInTime = 0;
     }
     localLog("athletic adjust predicted time to " + predictedAthleticTime + "s.");
 };
-setInterval(calculatePredictedTime, 600000);
 
-// 创建服务器
-const server = http.createServer((req, res) => {
+// 匹配（POST /）
+let matchResponse = function(req, res) {
     try {
         // 读取数据
         let credentials = new Buffer(req.headers['authorization'].split(' ')[1], 'base64').toString().split(':');
@@ -321,9 +320,43 @@ const server = http.createServer((req, res) => {
         res.end();
         return;
     }
+}
+
+// 时间（GET /stats）
+let getTimeResponse = function(parsedUrl, res) {
+    if (parsedUrl.pathname === '/stats/entertain')
+        textResponse(res, predictedEntertainTime.toString());
+    else if (parsedUrl.pathname === '/stats/athletic')
+        textResponse(res, predictedAthleticTime.toString());
+    else
+        notFoundResponse(res);
+}
+
+let textResponse = function (res, text) {
+    res.statusCode = 200;
+    res.contentType = 'text/plain';
+    res.end(text);
+}
+
+let notFoundResponse = function(res) {
+    res.statusCode = 404;
+    res.end();
+}
+
+// 创建服务器
+const server = http.createServer((req, res) => {
+    let parsedUrl = url.parse(req.url);
+    if (req.method === 'POST' && parsedUrl.pathname === '/')
+        matchResponse(req, res);
+    else if (req.method === 'GET' && parsedUrl.pathname.startsWith('/stats'))
+        getTimeResponse(parsedUrl, res);
+    else
+        notFoundResponse(res);
+
 })
 server.timeout = 0
 server.listen(1025);
 
 setInterval(update, config.match.timeInterval);
+setInterval(calculatePredictedTime, 600000);
 
