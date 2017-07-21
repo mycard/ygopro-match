@@ -2,11 +2,11 @@
   "servers": {
     "entertain": {
       "address": "127.0.0.1",
-      "port": "9999"
+      "port": 9999
     },
     "athletic": {
       "address": "127.0.0.1",
-      "port": "9998"
+      "port": 9998
     }
   },
   "arena": {
