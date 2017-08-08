@@ -15,7 +15,7 @@ let entertainRequestCountInTime = 0, athleticRequestCountInTime = 0;
 
 let localLog = function (content) {
     console.log("[" + new Date().toLocaleString() + "] " + content)
-}
+};
 
 let getUserConfig = function (user, callback) {
     // HTTP GET 抓取数据。
@@ -114,7 +114,7 @@ let updateAthleticMatch = function () {
 updateAthleticMatch = function () {
     let length = athleticUserPool.length;
     if (length < 2) return;
-    athleticUserPool.sort((a, b) => b.pt - a.pt);
+    athleticUserPool.sort((a, b) => b.data.pt - a.data.pt);
     let newPool = [];
     for (let i = 0; i < length; i++) {
         let userA = athleticUserPool[i];
@@ -126,7 +126,7 @@ updateAthleticMatch = function () {
             newPool.push(userA);
             break;
         }
-        // 若 exp 之差小于门限，则匹配房间
+        // 若 pt 之差小于门限，则匹配房间
         if (userA.data.pt - userB.data.pt < config.match.atheleticPtGate) {
             pair(userA.client, userB.client, 'athletic');
             i += 1;
@@ -136,7 +136,7 @@ updateAthleticMatch = function () {
             newPool.push(userA);
     }
     athleticUserPool = newPool;
-}
+};
 
 // 刷新娱乐玩家池
 let updateEntertainMatch = function () {
