@@ -16,6 +16,6 @@
     "timeInterval": 10000,
     "athleticTrueSkillGate": 0.4,
     "entertainExpGate": 100,
-    "atheleticPtGate": 50
+    "atheleticPtGate": [350, 50, 500]
   }
 }

@@ -42,6 +42,7 @@ let getUserConfig = function (user, callback) {
         else {
             try {
                 let value = JSON.parse(body);
+                setUserLimit(value);
                 callback(value);
             }
             catch (e) {
@@ -56,6 +57,15 @@ let getUserConfig = function (user, callback) {
      callback();
      });
      */
+};
+
+let setUserLimit = function(data) {
+    if (Array.isArray(config.match.atheleticPtGate))
+        data.limit = config.match.atheleticPtGate[1];
+    else if (Number.isInteger(config.match.atheleticPtGate))
+        data.limit = config.match.atheleticPtGatmatche;
+    else
+        data.limit = 500;
 };
 
 
@@ -127,7 +137,8 @@ updateAthleticMatch = function () {
             break;
         }
         // 若 pt 之差小于门限，则匹配房间
-        if (userA.data.pt - userB.data.pt < config.match.atheleticPtGate) {
+        let delta = userA.data.pt - userB.data.pt;
+        if (delta < userA.data.limit && delta < userB.data.limit) {
             pair(userA.client, userB.client, 'athletic');
             i += 1;
         }
@@ -135,6 +146,9 @@ updateAthleticMatch = function () {
         else
             newPool.push(userA);
     }
+    if (Array.isArray(config.match.atheleticPtGate))
+        for (let user of newPool)
+            user.data.limit = Math.min(user.data.limit + config.match.atheleticPtGate[1], config.match.atheleticPtGate[2])
     athleticUserPool = newPool;
 };
 
