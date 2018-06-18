@@ -10,6 +10,7 @@ const config = JSON.parse(fs.readFileSync("./config.json"));
 let athleticUserPool = [];
 let entertainUserPool = [];
 let deadUserPool = [];
+let playingPlayerPool = new Map();
 let predictedEntertainTime = 600, predictedAthleticTime = 600;
 let entertainRequestCountInTime = 0, athleticRequestCountInTime = 0;
 
@@ -215,6 +216,7 @@ let pair = function (userARes, userBRes, serverName) {
             "port": server.port,
             "password": password
         });
+        playingPlayerPool.set(client.username, result);
         client.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
         client.end(result);
     }
@@ -257,7 +259,7 @@ let errorUser = function (res) {
     localLog(res.username + " errored for get user information.");
     res.statusCode = 400;
     res.end();
-}
+};
 
 // 当用户断开连接时
 let closedUser = function (res, pool) {
@@ -274,7 +276,17 @@ let closedUser = function (res, pool) {
     // 若用户未在匹配池中，挂黑名单
     else
         deadUserPool.push(res);
-}
+};
+
+// 当 srvpro 通知本服务器游戏已正常结束时
+let finishUser = function (json) {
+    let userA = json.usernameA;
+    let userB = json.usernameB;
+    for (let user in [userA, userB]) {
+        if (!playingPlayerPool.delete(user))
+            localLog("Unknown player left the game: " + user);
+    }
+};
 
 // 计算预期时间
 let calculatePredictedTime = function() {
@@ -303,6 +315,11 @@ let matchResponse = function(req, res) {
         let password = credentials[1];
         if (!username || !password) {
             throw 'auth';
+        }
+        // 检定是否掉线重连
+        if (playingPlayerPool.has(username)) {
+            res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
+            res.end(result);
         }
         let arg = url.parse(req.url, true).query;
         if (!arg.arena) arg.arena = 'entertain';
@@ -334,7 +351,7 @@ let matchResponse = function(req, res) {
         res.end();
         return;
     }
-}
+};
 
 // 时间（GET /stats）
 let getTimeResponse = function(parsedUrl, res) {
@@ -344,18 +361,29 @@ let getTimeResponse = function(parsedUrl, res) {
         textResponse(res, predictedAthleticTime.toString());
     else
         notFoundResponse(res);
-}
+};
 
 let textResponse = function (res, text) {
     res.statusCode = 200;
     res.contentType = 'text/plain';
     res.end(text);
-}
+};
+
+// 结束游戏 (POST /finish）
+let endUserResponse = function(req, res) {
+    let json = '';
+    req.on('data', (data) => json += data);
+    req.on('end', function () {
+        let result = finishUser(json);
+        res.statusCode = 200;
+        res.end('ok');
+    })
+};
 
 let notFoundResponse = function(res) {
     res.statusCode = 404;
     res.end();
-}
+};
 
 // 创建服务器
 const server = http.createServer((req, res) => {
@@ -364,11 +392,13 @@ const server = http.createServer((req, res) => {
         matchResponse(req, res);
     else if (req.method === 'GET' && parsedUrl.pathname.startsWith('/stats'))
         getTimeResponse(parsedUrl, res);
+    else if (req.method === 'POST' && parsedUrl.pathname.startsWith('/finish'))
+        endUserResponse(req, res);
     else
         notFoundResponse(res);
 
-})
-server.timeout = 0
+});
+server.timeout = 0;
 server.listen(1025);
 
 setInterval(update, config.match.timeInterval);
