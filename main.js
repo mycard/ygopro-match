@@ -374,7 +374,7 @@ let endUserResponse = function(req, res) {
     let json = '';
     req.on('data', (data) => json += data);
     req.on('end', function () {
-        let result = finishUser(json);
+        let result = finishUser(JSON.parse(json));
         res.statusCode = 200;
         res.end('ok');
     })
