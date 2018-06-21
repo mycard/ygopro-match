@@ -320,6 +320,7 @@ let matchResponse = function(req, res) {
         if (playingPlayerPool.has(username)) {
             res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
             res.end(playingPlayerPool.get(username));
+            return;
         }
         let arg = url.parse(req.url, true).query;
         if (!arg.arena) arg.arena = 'entertain';
