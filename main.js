@@ -280,9 +280,9 @@ let closedUser = function (res, pool) {
 
 // 当 srvpro 通知本服务器游戏已正常结束时
 let finishUser = function (json) {
-    let userA = json.usernameA;
-    let userB = json.usernameB;
-    for (let user in [userA, userB]) {
+    let userA = decodeURIComponent(json.usernameA);
+    let userB = decodeURIComponent(json.usernameB);
+    for (let user of [userA, userB]) {
         if (!playingPlayerPool.delete(user))
             localLog("Unknown player left the game: " + user);
     }
