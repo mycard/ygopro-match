@@ -372,10 +372,16 @@ let textResponse = function (res, text) {
 
 // 结束游戏 (POST /finish）
 let endUserResponse = function(req, res) {
-    let json = '';
-    req.on('data', (data) => json += data);
+    let form = '';
+    req.on('data', (data) => form += data);
     req.on('end', function () {
-        let result = finishUser(JSON.parse(json));
+        let json = {};
+        let hashes = form.slice(form.indexOf('?') + 1).split('&');
+        for (let i = 0; i < hashes.length; i++) {
+            let hash = hashes[i].split('=');
+            json[hash[0]] = hash[1];
+        }
+        let result = finishUser(json);
         res.statusCode = 200;
         res.end('ok');
     })
