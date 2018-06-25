@@ -64,7 +64,7 @@ let setUserLimit = function(data) {
     if (Array.isArray(config.match.atheleticPtGate))
         data.limit = config.match.atheleticPtGate[0];
     else if (Number.isInteger(config.match.atheleticPtGate))
-        data.limit = config.match.atheleticPtGatmatche;
+        data.limit = config.match.atheleticPtGate;
     else
         data.limit = 500;
 };
