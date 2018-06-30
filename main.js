@@ -217,6 +217,7 @@ let pair = function (userARes, userBRes, serverName) {
             "password": password
         });
         playingPlayerPool.set(client.username, result);
+        setTimeout(timeoutUser, config.match.longestMatchTime, client.username);
         client.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
         client.end(result);
     }
@@ -288,6 +289,12 @@ let finishUser = function (json) {
     }
 };
 
+// 当超过时间，而 srvpro 从未通知基本服务器游戏已结束时
+let timeoutUser = function(user) {
+    if (playingPlayerPool.delete(user))
+        localLog("With timeout, user is seen as had left the game: " + user);
+};
+
 // 计算预期时间
 let calculatePredictedTime = function() {
     if (entertainRequestCountInTime == 0)
@@ -318,9 +325,17 @@ let matchResponse = function(req, res) {
         }
         // 检定是否掉线重连
         if (playingPlayerPool.has(username)) {
-            res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
-            res.end(playingPlayerPool.get(username));
-            return;
+            switch (config.match.reconnect) {
+                case "reconnect":
+                    res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
+                    res.end(playingPlayerPool.get(username));
+                    return;
+                case "drop":
+                    rejectUser(res);
+                    return;
+                default:
+                    break; // 什么都不做，继续加入匹配池。
+            }
         }
         let arg = url.parse(req.url, true).query;
         if (!arg.arena) arg.arena = 'entertain';
