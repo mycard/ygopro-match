@@ -11,6 +11,7 @@ let athleticUserPool = [];
 let entertainUserPool = [];
 let deadUserPool = [];
 let playingPlayerPool = new Map();
+let playingPlayerOpponents = new Map();
 let predictedEntertainTime = 600, predictedAthleticTime = 600;
 let entertainRequestCountInTime = 0, athleticRequestCountInTime = 0;
 
@@ -204,6 +205,8 @@ let pair = function (userARes, userBRes, serverName) {
     }
     options_buffer.writeUInt8(checksum & 0xFF, 0);
     localLog(userARes.username + " and " + userBRes.username + " matched on room " + room_id);
+    playingPlayerOpponents.set(userARes.username, userBRes.username);
+    playingPlayerOpponents.set(userBRes.username, userARes.username);
     for (let client of [userARes, userBRes]) {
         let buffer = new Buffer(6);
         let secret = parseInt(client.password) % 65535 + 1;
@@ -215,8 +218,6 @@ let pair = function (userARes, userBRes, serverName) {
             "address": server.address,
             "port": server.port,
             "password": password,
-            // 尽管这很脏……
-            "opponent": client == userARes ? userBRes.username : userARes.username
         });
         playingPlayerPool.set(client.username, result);
         setTimeout(timeoutUser, config.match.longestMatchTime, client.username);
@@ -286,8 +287,8 @@ let finishUser = function (json) {
     let userA = json.usernameA ? decodeURIComponent(json.usernameA) : undefiend;
     let userB = json.usernameB ? decodeURIComponent(json.usernameB) : undefined;
     if (!userA && !userB) return;
-    if (!userA && playingPlayerPool.has(userB)) userA = JSON.parse(playingPlayerPool.get(userB)).opponent;
-    if (!userB && playingPlayerPool.has(userA)) userB = JSON.parse(playingPlayerPool.get(userA)).opponent;
+    if (!userA && playingPlayerOpponents.has(userB)) userA = playingPlayerOpponents.get(userB);
+    if (!userB && playingPlayerOpponents.has(userA)) userB = playingPlayerOpponents.get(userA);
     for (let user of [userA, userB]) {
         if (!user) continue;
         if (!playingPlayerPool.delete(user))
@@ -300,6 +301,7 @@ let finishUser = function (json) {
 let timeoutUser = function(user) {
     if (playingPlayerPool.delete(user))
         localLog("With timeout, user is seen as had left the game: " + user);
+    playingPlayerOpponents.delete(user);
 };
 
 // 计算预期时间
