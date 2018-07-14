@@ -214,7 +214,9 @@ let pair = function (userARes, userBRes, serverName) {
         let result = JSON.stringify({
             "address": server.address,
             "port": server.port,
-            "password": password
+            "password": password,
+            // 尽管这很脏……
+            "opponent": client == userARes ? userBRes.username : userARes.username
         });
         playingPlayerPool.set(client.username, result);
         setTimeout(timeoutUser, config.match.longestMatchTime, client.username);
@@ -283,11 +285,15 @@ let closedUser = function (res, pool) {
 let finishUser = function (json) {
     let userA = json.usernameA ? decodeURIComponent(json.usernameA) : undefiend;
     let userB = json.usernameB ? decodeURIComponent(json.usernameB) : undefined;
+    if (!userA && !userB) return;
+    if (!userA && playingPlayerPool.has(userB)) userA = JSON.parse(playingPlayerPool.get(userB)).opponent;
+    if (!userB && playingPlayerPool.has(userA)) userB = JSON.parse(playingPlayerPool.get(userA)).opponent;
     for (let user of [userA, userB]) {
         if (!user) continue;
         if (!playingPlayerPool.delete(user))
             localLog("Unknown player left the game: " + user);
     }
+    localLog("Player " + userA + " and " + userB + " finished the game.");
 };
 
 // 当超过时间，而 srvpro 从未通知基本服务器游戏已结束时
