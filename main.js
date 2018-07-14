@@ -323,6 +323,8 @@ let matchResponse = function(req, res) {
         if (!username || !password) {
             throw 'auth';
         }
+        res.username = username;
+        res.password = password;
         // 检定是否掉线重连
         if (playingPlayerPool.has(username)) {
             switch (config.match.reconnect) {
@@ -340,8 +342,6 @@ let matchResponse = function(req, res) {
         let arg = url.parse(req.url, true).query;
         if (!arg.arena) arg.arena = 'entertain';
         localLog(username + ' apply for a ' + arg.arena + ' match.');
-        res.username = username;
-        res.password = password;
         // 选择匹配池
         let pool = null;
         if (arg.arena == 'athletic')
