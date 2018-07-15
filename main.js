@@ -12,6 +12,7 @@ let entertainUserPool = [];
 let deadUserPool = [];
 let playingPlayerPool = new Map();
 let playingPlayerOpponents = new Map();
+let playingPlayerTimeout = new Map();
 let predictedEntertainTime = 600, predictedAthleticTime = 600;
 let entertainRequestCountInTime = 0, athleticRequestCountInTime = 0;
 
@@ -220,7 +221,7 @@ let pair = function (userARes, userBRes, serverName) {
             "password": password,
         });
         playingPlayerPool.set(client.username, result);
-        setTimeout(timeoutUser, config.match.longestMatchTime, client.username);
+        playingPlayerTimeout.set(client.username, setTimeout(timeoutUser, config.match.longestMatchTime, client.username));
         client.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
         client.end(result);
     }
@@ -293,6 +294,8 @@ let finishUser = function (json) {
         if (!user) continue;
         if (!playingPlayerPool.delete(user))
             localLog("Unknown player left the game: " + user);
+        clearTimeout(playingPlayerTimeout.get(user));
+        playingPlayerTimeout.delete(user);
     }
     localLog("Player " + userA + " and " + userB + " finished the game.");
 };
@@ -302,6 +305,7 @@ let timeoutUser = function(user) {
     if (playingPlayerPool.delete(user))
         localLog("With timeout, user is seen as had left the game: " + user);
     playingPlayerOpponents.delete(user);
+    playingPlayerTimeout.delete(user);
 };
 
 // 计算预期时间
