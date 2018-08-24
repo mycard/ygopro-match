@@ -10,6 +10,9 @@ const config = JSON.parse(fs.readFileSync("./config.json"));
 let athleticUserPool = [];
 let entertainUserPool = [];
 let deadUserPool = [];
+let playingPlayerPool = new Map();
+let playingPlayerOpponents = new Map();
+let playingPlayerTimeout = new Map();
 let predictedEntertainTime = 600, predictedAthleticTime = 600;
 let entertainRequestCountInTime = 0, athleticRequestCountInTime = 0;
 
@@ -63,7 +66,7 @@ let setUserLimit = function(data) {
     if (Array.isArray(config.match.atheleticPtGate))
         data.limit = config.match.atheleticPtGate[0];
     else if (Number.isInteger(config.match.atheleticPtGate))
-        data.limit = config.match.atheleticPtGatmatche;
+        data.limit = config.match.atheleticPtGate;
     else
         data.limit = 500;
 };
@@ -203,6 +206,8 @@ let pair = function (userARes, userBRes, serverName) {
     }
     options_buffer.writeUInt8(checksum & 0xFF, 0);
     localLog(userARes.username + " and " + userBRes.username + " matched on room " + room_id);
+    playingPlayerOpponents.set(userARes.username, userBRes.username);
+    playingPlayerOpponents.set(userBRes.username, userARes.username);
     for (let client of [userARes, userBRes]) {
         let buffer = new Buffer(6);
         let secret = parseInt(client.password) % 65535 + 1;
@@ -213,8 +218,10 @@ let pair = function (userARes, userBRes, serverName) {
         let result = JSON.stringify({
             "address": server.address,
             "port": server.port,
-            "password": password
+            "password": password,
         });
+        playingPlayerPool.set(client.username, result);
+        playingPlayerTimeout.set(client.username, setTimeout(timeoutUser, config.match.longestMatchTime, client.username));
         client.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
         client.end(result);
     }
@@ -257,7 +264,7 @@ let errorUser = function (res) {
     localLog(res.username + " errored for get user information.");
     res.statusCode = 400;
     res.end();
-}
+};
 
 // 当用户断开连接时
 let closedUser = function (res, pool) {
@@ -274,7 +281,32 @@ let closedUser = function (res, pool) {
     // 若用户未在匹配池中，挂黑名单
     else
         deadUserPool.push(res);
-}
+};
+
+// 当 srvpro 通知本服务器游戏已正常结束时
+let finishUser = function (json) {
+    let userA = json.usernameA ? decodeURIComponent(json.usernameA) : undefiend;
+    let userB = json.usernameB ? decodeURIComponent(json.usernameB) : undefined;
+    if (!userA && !userB) return;
+    if (!userA && playingPlayerOpponents.has(userB)) userA = playingPlayerOpponents.get(userB);
+    if (!userB && playingPlayerOpponents.has(userA)) userB = playingPlayerOpponents.get(userA);
+    for (let user of [userA, userB]) {
+        if (!user) continue;
+        if (!playingPlayerPool.delete(user))
+            localLog("Unknown player left the game: " + user);
+        clearTimeout(playingPlayerTimeout.get(user));
+        playingPlayerTimeout.delete(user);
+    }
+    localLog("Player " + userA + " and " + userB + " finished the game.");
+};
+
+// 当超过时间，而 srvpro 从未通知基本服务器游戏已结束时
+let timeoutUser = function(user) {
+    if (playingPlayerPool.delete(user))
+        localLog("With timeout, user is seen as had left the game: " + user);
+    playingPlayerOpponents.delete(user);
+    playingPlayerTimeout.delete(user);
+};
 
 // 计算预期时间
 let calculatePredictedTime = function() {
@@ -304,11 +336,25 @@ let matchResponse = function(req, res) {
         if (!username || !password) {
             throw 'auth';
         }
+        res.username = username;
+        res.password = password;
+        // 检定是否掉线重连
+        if (playingPlayerPool.has(username)) {
+            switch (config.match.reconnect) {
+                case "reconnect":
+                    res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
+                    res.end(playingPlayerPool.get(username));
+                    return;
+                case "drop":
+                    rejectUser(res);
+                    return;
+                default:
+                    break; // 什么都不做，继续加入匹配池。
+            }
+        }
         let arg = url.parse(req.url, true).query;
         if (!arg.arena) arg.arena = 'entertain';
         localLog(username + ' apply for a ' + arg.arena + ' match.');
-        res.username = username;
-        res.password = password;
         // 选择匹配池
         let pool = null;
         if (arg.arena == 'athletic')
@@ -334,7 +380,7 @@ let matchResponse = function(req, res) {
         res.end();
         return;
     }
-}
+};
 
 // 时间（GET /stats）
 let getTimeResponse = function(parsedUrl, res) {
@@ -344,18 +390,35 @@ let getTimeResponse = function(parsedUrl, res) {
         textResponse(res, predictedAthleticTime.toString());
     else
         notFoundResponse(res);
-}
+};
 
 let textResponse = function (res, text) {
     res.statusCode = 200;
     res.contentType = 'text/plain';
     res.end(text);
-}
+};
+
+// 结束游戏 (POST /finish）
+let endUserResponse = function(req, res) {
+    let form = '';
+    req.on('data', (data) => form += data);
+    req.on('end', function () {
+        let json = {};
+        let hashes = form.slice(form.indexOf('?') + 1).split('&');
+        for (let i = 0; i < hashes.length; i++) {
+            let hash = hashes[i].split('=');
+            json[hash[0]] = hash[1];
+        }
+        let result = finishUser(json);
+        res.statusCode = 200;
+        res.end('ok');
+    })
+};
 
 let notFoundResponse = function(res) {
     res.statusCode = 404;
     res.end();
-}
+};
 
 // 创建服务器
 const server = http.createServer((req, res) => {
@@ -364,11 +427,13 @@ const server = http.createServer((req, res) => {
         matchResponse(req, res);
     else if (req.method === 'GET' && parsedUrl.pathname.startsWith('/stats'))
         getTimeResponse(parsedUrl, res);
+    else if (req.method === 'POST' && parsedUrl.pathname.startsWith('/finish'))
+        endUserResponse(req, res);
     else
         notFoundResponse(res);
 
-})
-server.timeout = 0
+});
+server.timeout = 0;
 server.listen(1025);
 
 setInterval(update, config.match.timeInterval);
