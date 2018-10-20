@@ -11,6 +11,8 @@ let athleticUserPool = [];
 let entertainUserPool = [];
 let deadUserPool = [];
 let playingPlayerPool = new Map();
+let playingPlayerOpponents = new Map();
+let playingPlayerTimeout = new Map();
 let predictedEntertainTime = 600, predictedAthleticTime = 600;
 let entertainRequestCountInTime = 0, athleticRequestCountInTime = 0;
 
@@ -204,6 +206,8 @@ let pair = function (userARes, userBRes, serverName) {
     }
     options_buffer.writeUInt8(checksum & 0xFF, 0);
     localLog(userARes.username + " and " + userBRes.username + " matched on room " + room_id);
+    playingPlayerOpponents.set(userARes.username, userBRes.username);
+    playingPlayerOpponents.set(userBRes.username, userARes.username);
     for (let client of [userARes, userBRes]) {
         let buffer = new Buffer(6);
         let secret = parseInt(client.password) % 65535 + 1;
@@ -214,10 +218,10 @@ let pair = function (userARes, userBRes, serverName) {
         let result = JSON.stringify({
             "address": server.address,
             "port": server.port,
-            "password": password
+            "password": password,
         });
         playingPlayerPool.set(client.username, result);
-        setTimeout(timeoutUser, config.match.longestMatchTime, client.username);
+        playingPlayerTimeout.set(client.username, setTimeout(timeoutUser, config.match.longestMatchTime, client.username));
         client.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
         client.end(result);
     }
@@ -281,18 +285,27 @@ let closedUser = function (res, pool) {
 
 // 当 srvpro 通知本服务器游戏已正常结束时
 let finishUser = function (json) {
-    let userA = decodeURIComponent(json.usernameA);
-    let userB = decodeURIComponent(json.usernameB);
+    let userA = json.usernameA ? decodeURIComponent(json.usernameA) : undefiend;
+    let userB = json.usernameB ? decodeURIComponent(json.usernameB) : undefined;
+    if (!userA && !userB) return;
+    if (!userA && playingPlayerOpponents.has(userB)) userA = playingPlayerOpponents.get(userB);
+    if (!userB && playingPlayerOpponents.has(userA)) userB = playingPlayerOpponents.get(userA);
     for (let user of [userA, userB]) {
+        if (!user) continue;
         if (!playingPlayerPool.delete(user))
             localLog("Unknown player left the game: " + user);
+        clearTimeout(playingPlayerTimeout.get(user));
+        playingPlayerTimeout.delete(user);
     }
+    localLog("Player " + userA + " and " + userB + " finished the game.");
 };
 
 // 当超过时间，而 srvpro 从未通知基本服务器游戏已结束时
 let timeoutUser = function(user) {
     if (playingPlayerPool.delete(user))
         localLog("With timeout, user is seen as had left the game: " + user);
+    playingPlayerOpponents.delete(user);
+    playingPlayerTimeout.delete(user);
 };
 
 // 计算预期时间
@@ -323,6 +336,8 @@ let matchResponse = function(req, res) {
         if (!username || !password) {
             throw 'auth';
         }
+        res.username = username;
+        res.password = password;
         // 检定是否掉线重连
         if (playingPlayerPool.has(username)) {
             switch (config.match.reconnect) {
@@ -340,8 +355,6 @@ let matchResponse = function(req, res) {
         let arg = url.parse(req.url, true).query;
         if (!arg.arena) arg.arena = 'entertain';
         localLog(username + ' apply for a ' + arg.arena + ' match.');
-        res.username = username;
-        res.password = password;
         // 选择匹配池
         let pool = null;
         if (arg.arena == 'athletic')
