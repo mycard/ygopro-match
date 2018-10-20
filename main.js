@@ -31,7 +31,7 @@ let getUserConfig = function (user, callback) {
             // Kick out
             errorUser(user);
         }
-        else if (res.statusCode != 200) {
+        else if (res.statusCode !== 200) {
             try {
                 localLog("failed to load user data for " + user.username + " with code " + res.statusCode);
                 localLog("response: " + JSON.stringify(res) + "\nBODY: " + body);
@@ -196,7 +196,7 @@ let pair = function (userARes, userBRes, serverName) {
     let servers = config.servers;
     let server = servers[serverName];
     if (Object.prototype.toString.call(server) === '[object Array]')
-        server = server[Math.random() * server.length]
+        server = server[Math.random() * server.length];
     let room_id = crypto.randomBytes(6).toString('base64').slice(0, 11).replace('+', '-').replace('/', '_');
     let options_buffer = new Buffer(6);
     options_buffer.writeUInt8(4 << 4, 1);
@@ -271,7 +271,7 @@ let closedUser = function (res, pool) {
     let index = -1;
     // 查询用户是否已在匹配池中
     for (let i = 0; i < pool.length; i++)
-        if (pool[i].client == res)
+        if (pool[i].client === res)
             index = i;
     // 若用户已在匹配池中，移除
     if (index >= 0) {
@@ -310,14 +310,14 @@ let timeoutUser = function(user) {
 
 // 计算预期时间
 let calculatePredictedTime = function() {
-    if (entertainRequestCountInTime == 0)
+    if (entertainRequestCountInTime === 0)
         predictedEntertainTime = 600;
     else {
         predictedEntertainTime = 600 / entertainRequestCountInTime;
         entertainRequestCountInTime = 0;
     }
     localLog("entertain adjust predicted time to " + predictedEntertainTime + "s.");
-    if (athleticRequestCountInTime == 0)
+    if (athleticRequestCountInTime === 0)
         predictedAthleticTime = 600;
     else {
         predictedAthleticTime = 600 / athleticRequestCountInTime;
@@ -371,7 +371,7 @@ let matchResponse = function(req, res) {
             joinPool(res, ans, pool);
         });
         // 统计器
-        if (arg.arena == 'athletic') athleticRequestCountInTime += 1;
+        if (arg.arena === 'athletic') athleticRequestCountInTime += 1;
         else entertainRequestCountInTime += 1;
     }
     catch (error) {
