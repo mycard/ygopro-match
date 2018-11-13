@@ -343,10 +343,13 @@ let matchResponse = function(req, res) {
             switch (config.match.reconnect) {
                 case "reconnect":
                     res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
-                    res.end(playingPlayerPool.get(username));
+                    let message = playingPlayerPool.get(username);
+                    localLog(username + " is relining to: " + message);
+                    res.end(message);
                     return;
                 case "drop":
                     rejectUser(res);
+                    localLog(username + " is droped due to try relining.");
                     return;
                 default:
                     break; // 什么都不做，继续加入匹配池。
@@ -357,7 +360,7 @@ let matchResponse = function(req, res) {
         localLog(username + ' apply for a ' + arg.arena + ' match.');
         // 选择匹配池
         let pool = null;
-        if (arg.arena == 'athletic')
+        if (arg.arena === 'athletic')
             pool = athleticUserPool;
         else
             pool = entertainUserPool;
