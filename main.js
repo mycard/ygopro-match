@@ -285,7 +285,7 @@ let closedUser = function (res, pool) {
 
 // 当 srvpro 通知本服务器游戏已正常结束时
 let finishUser = function (json) {
-    let userA = json.usernameA ? decodeURIComponent(json.usernameA) : undefiend;
+    let userA = json.usernameA ? decodeURIComponent(json.usernameA) : undefined;
     let userB = json.usernameB ? decodeURIComponent(json.usernameB) : undefined;
     if (!userA && !userB) return;
     if (!userA && playingPlayerOpponents.has(userB)) userA = playingPlayerOpponents.get(userB);
