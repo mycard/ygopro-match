@@ -426,7 +426,7 @@ let getUserPermit = function(query, req, res) {
         if (password == info.password)
             res.json({ permit: true, reason: null });
         else
-            res.json({ permit: true, reason: 'Wrong roomname.' });
+            res.json({ permit: false, reason: 'Wrong roomname.' });
     } 
     else
         res.json({ permit: false, reason: 'No record in player pool.' })
