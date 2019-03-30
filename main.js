@@ -163,7 +163,6 @@ let updateEntertainMatch = function () {
     entertainUserPool.sort((a, b) => b.data.exp - a.data.exp);
     // 从高到低进行贪心配对
     let newPool = [];
-    // TODO: 加入时间分界
     for (let i = 0; i < length; i++) {
         let userA = entertainUserPool[i];
         let userB = entertainUserPool[i + 1];
@@ -215,15 +214,15 @@ let pair = function (userARes, userBRes, serverName) {
             buffer.writeUInt16LE(options_buffer.readUInt16LE(i) ^ secret, i)
         }
         let password = buffer.toString('base64') + room_id;
-        let result = JSON.stringify({
+        let result = {
             "address": server.address,
             "port": server.port,
             "password": password,
-        });
+        };
         playingPlayerPool.set(client.username, result);
         playingPlayerTimeout.set(client.username, setTimeout(timeoutUser, config.match.longestMatchTime, client.username));
         client.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
-        client.end(result);
+        client.end(JSON.stringify(result));
     }
 };
 
@@ -345,7 +344,7 @@ let matchResponse = function(req, res) {
                     res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
                     let message = playingPlayerPool.get(username);
                     localLog(username + " is relining to: " + message);
-                    res.end(message);
+                    res.end(JSON.stringify(message));
                     return;
                 case "drop":
                     rejectUser(res);
@@ -418,6 +417,21 @@ let endUserResponse = function(req, res) {
     })
 };
 
+// 许可（GET /permit）
+let getUserPermit = function(query, req, res) {
+    let username = query.username;
+    let password = query.password;
+    if (playingPlayerPool.has(username)) {
+        let info =  playingPlayerPool.get(username);
+        if (password == info.password)
+            res.json({ permit: true, reason: null });
+        else
+            res.json({ permit: true, reason: 'Wrong roomname.' });
+    } 
+    else
+        res.json({ permit: false, reason: 'No record in player pool.' })
+}
+
 let notFoundResponse = function(res) {
     res.statusCode = 404;
     res.end();
@@ -425,13 +439,15 @@ let notFoundResponse = function(res) {
 
 // 创建服务器
 const server = http.createServer((req, res) => {
-    let parsedUrl = url.parse(req.url);
+    let parsedUrl = url.parse(req.url, true);
     if (req.method === 'POST' && parsedUrl.pathname === '/')
         matchResponse(req, res);
     else if (req.method === 'GET' && parsedUrl.pathname.startsWith('/stats'))
         getTimeResponse(parsedUrl, res);
     else if (req.method === 'POST' && parsedUrl.pathname.startsWith('/finish'))
         endUserResponse(req, res);
+    else if (req.method == 'GET' && parsedUrl.pathname.startsWith('/permit'))
+        getUserPermit(parsedUrl.query, req, res);
     else
         notFoundResponse(res);
 
