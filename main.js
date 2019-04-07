@@ -424,12 +424,12 @@ let getUserPermit = function(query, req, res) {
     if (playingPlayerPool.has(username)) {
         let info =  playingPlayerPool.get(username);
         if (password == info.password)
-            res.json({ permit: true, reason: null });
+            res.end(JSON.stringify({ permit: true, reason: null }));
         else
-            res.json({ permit: false, reason: 'Wrong roomname.' });
+            res.end(JSON.stringify({ permit: false, reason: 'Wrong roomname.' }));
     } 
     else
-        res.json({ permit: false, reason: 'No record in player pool.' })
+        res.end(JSON.stringify({ permit: false, reason: 'No record in player pool.' }));
 }
 
 let notFoundResponse = function(res) {
