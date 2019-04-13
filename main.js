@@ -427,10 +427,11 @@ let getUserPermit = function(query, req, res) {
         if (password == info.password) {
             // There is a bug. Should check if server is an array. 
             // But since now we have only one server for each arena..
-            if (arena == null || arena == undefined || info.address == config.servers[arena])
+            let isCorrectArena = (!arena || (info.address === config.servers[arena].address && info.port === config.servers[arena].port));
+            if (isCorrectArena)
                 res.end(JSON.stringify({ permit: true, reason: null }));
             else
-                res.end(JSON/stringify({ permit: false, reason: 'Wrong arena.' }))
+                res.end(JSON.stringify({ permit: false, reason: 'Wrong arena.' }))
         }
         else
             res.end(JSON.stringify({ permit: false, reason: 'Wrong roomname.' }));
