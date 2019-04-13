@@ -421,13 +421,13 @@ let endUserResponse = function(req, res) {
 let getUserPermit = function(query, req, res) {
     let username = query.username;
     let password = query.password;
-    let arena = query.arena || 'entertain';
+    let arena = query.arena;
     if (playingPlayerPool.has(username)) {
         let info =  playingPlayerPool.get(username);
         if (password == info.password) {
             // There is a bug. Should check if server is an array. 
             // But since now we have only one server for each arena..
-            if (info.address == config.servers[arena])
+            if (arena == null || arena == undefined || info.address == config.servers[arena])
                 res.end(JSON.stringify({ permit: true, reason: null }));
             else
                 res.end(JSON/stringify({ permit: false, reason: 'Wrong arena.' }))
