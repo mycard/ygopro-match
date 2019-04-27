@@ -394,12 +394,6 @@ let getTimeResponse = function(parsedUrl, res) {
         notFoundResponse(res);
 };
 
-let textResponse = function (res, text) {
-    res.statusCode = 200;
-    res.contentType = 'text/plain';
-    res.end(text);
-};
-
 // 结束游戏 (POST /finish）
 let endUserResponse = function(req, res) {
     let form = '';
@@ -418,7 +412,7 @@ let endUserResponse = function(req, res) {
 };
 
 // 许可（GET /permit）
-let getUserPermit = function(query, req, res) {
+let endUserPermit = function(query, req, res) {
     let username = query.username;
     let password = query.password;
     let arena = query.arena;
@@ -438,11 +432,45 @@ let getUserPermit = function(query, req, res) {
     } 
     else
         res.end(JSON.stringify({ permit: false, reason: 'No record in player pool.' }));
+};
+
+// 清除待选用户（POST /clear）
+let endClearResponse = function(query, res) {
+    let ak = query.ak;
+    if (ak != config.ak)
+        return notAllowedResponse(res);
+    let arena = query.arena || "entertain";
+    let user = query.user || "*";
+    let arena_info = config.servers[arena];
+    if (arena_info == null || arena_info == undefined)
+        return notFoundResponse(res);
+    let shadow_pool = new Map(playingPlayerPool)
+    let count = 0;
+    for (let [iterate_user, iterate_info] of shadow_pool.entries()) {
+        if (iterate_user != "*" && iterate_user != user) continue;
+        if (iterate_info.address == arena_info && iterate_info.port == arena_info.port) {
+            playingPlayerPool.delete(iterate_user);
+            playingPlayerOpponents.delete(iterate_user);
+            count += 1;
+        }
+    }
+    res.end(`${count} user cleared.`);
+};
+
+let notAllowedResponse = function(res) {
+    res.statusCode = 405;
+    res.end("Check your access key.")
 }
 
 let notFoundResponse = function(res) {
     res.statusCode = 404;
     res.end();
+};
+
+let textResponse = function (res, text) {
+    res.statusCode = 200;
+    res.contentType = 'text/plain';
+    res.end(text);
 };
 
 // 创建服务器
@@ -455,7 +483,9 @@ const server = http.createServer((req, res) => {
     else if (req.method === 'POST' && parsedUrl.pathname.startsWith('/finish'))
         endUserResponse(req, res);
     else if (req.method == 'GET' && parsedUrl.pathname.startsWith('/permit'))
-        getUserPermit(parsedUrl.query, req, res);
+        endUserPermit(parsedUrl.query, req, res);
+    else if (req.method === 'POST' && parsedUrl.pathname.startsWith('/clear'))
+        endClearResponse(parsedUrl.query, res)
     else
         notFoundResponse(res);
 
