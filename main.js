@@ -13,6 +13,7 @@ let deadUserPool = [];
 let playingPlayerPool = new Map();
 let playingPlayerOpponents = new Map();
 let playingPlayerTimeout = new Map();
+let noPlayPlayerPools = new Map();
 let predictedEntertainTime = 600, predictedAthleticTime = 600;
 let entertainRequestCountInTime = 0, athleticRequestCountInTime = 0;
 
@@ -132,6 +133,11 @@ updateAthleticMatch = function () {
     for (let i = 0; i < length; i++) {
         let userA = athleticUserPool[i];
         let userB = athleticUserPool[i + 1];
+        // 若AB不能匹配，则直接放弃A。
+        if (!canPairByNoPairRules(userA, userB)) {
+            newPool.push(userA);
+            continue;
+        }
         // 移出边界时的处理
         if (userA === undefined)
             break;
@@ -190,6 +196,12 @@ let update = function () {
     updateEntertainMatch();
 };
 
+// 两名玩家能否匹配
+let canPairByNoPairRules = function(userA, userB) {
+    let key = userA.client.username + "_&&_" + userB.client.username;
+    return !noPlayPlayerPools.has(key)
+}
+
 // 为两名玩家匹配房间
 let pair = function (userARes, userBRes, serverName) {
     let servers = config.servers;
@@ -224,6 +236,10 @@ let pair = function (userARes, userBRes, serverName) {
         client.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
         client.end(JSON.stringify(result));
     }
+    // No play again.
+    let user_pair_key = userARes.username + "_&&_" + userBRes.username
+    noPlayPlayerPools.set(user_pair_key, "YES");
+    setTimeout(config.noPlayAgain || 3600000, function() { noPlayPlayerPools.delete(user_pair_key) });
 };
 
 // 将用户加入待回池

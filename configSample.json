@@ -19,5 +19,6 @@
     "atheleticPtGate": [350, 50, 500],
     "longestGameTime": 7200000,
     "reconnect": "reconnect"
-  }
+  },
+  "noPlayAgain": 14400000
 }
