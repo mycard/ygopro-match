@@ -223,7 +223,7 @@ let pair = function (userARes, userBRes, serverName) {
         playingPlayerPool.set(client.username, result);
         playingPlayerTimeout.set(client.username, setTimeout(timeoutUser, config.match.longestMatchTime, client.username));
         client.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
-        resolve(result).then(r =>
+        lookup(result).then(r =>
             client.end(JSON.stringify(r))
         );
     }
@@ -347,7 +347,7 @@ let matchResponse = function(req, res) {
                     res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
                     let message = playingPlayerPool.get(username);
                     localLog(username + " is relining to: " + message);
-                    resolve(username).then(r =>
+                    lookup(message).then(r =>
                         res.end(JSON.stringify(r))
                     );
                     return;
@@ -478,7 +478,7 @@ let textResponse = function (res, text) {
     res.end(text);
 };
 
-function resolve(result) {
+function lookup(result) {
     return new Promise((resolve, reject) => {
         dns.lookup(result.address, {family :4},(err, address, family) => {
             if (err) {
