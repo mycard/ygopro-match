@@ -5,6 +5,7 @@ const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
 const url = require('url');
+const dns = require("dns");
 
 const config = JSON.parse(fs.readFileSync("./config.json"));
 let athleticUserPool = [];
@@ -222,7 +223,9 @@ let pair = function (userARes, userBRes, serverName) {
         playingPlayerPool.set(client.username, result);
         playingPlayerTimeout.set(client.username, setTimeout(timeoutUser, config.match.longestMatchTime, client.username));
         client.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
-        client.end(JSON.stringify(result));
+        resolve(result).then(r =>
+            client.end(JSON.stringify(r))
+        );
     }
 };
 
@@ -344,7 +347,9 @@ let matchResponse = function(req, res) {
                     res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-cache'});
                     let message = playingPlayerPool.get(username);
                     localLog(username + " is relining to: " + message);
-                    res.end(JSON.stringify(message));
+                    resolve(username).then(r =>
+                        res.end(JSON.stringify(r))
+                    );
                     return;
                 case "drop":
                     rejectUser(res);
@@ -419,7 +424,7 @@ let endUserPermit = function(query, req, res) {
     if (playingPlayerPool.has(username)) {
         let info =  playingPlayerPool.get(username);
         if (password == info.password) {
-            // There is a bug. Should check if server is an array. 
+            // There is a bug. Should check if server is an array.
             // But since now we have only one server for each arena..
             let isCorrectArena = (!arena || (info.address === config.servers[arena].address && info.port === config.servers[arena].port));
             if (isCorrectArena)
@@ -429,7 +434,7 @@ let endUserPermit = function(query, req, res) {
         }
         else
             res.end(JSON.stringify({ permit: false, reason: 'Wrong roomname.' }));
-    } 
+    }
     else
         res.end(JSON.stringify({ permit: false, reason: 'No record in player pool.' }));
 };
@@ -472,6 +477,18 @@ let textResponse = function (res, text) {
     res.contentType = 'text/plain';
     res.end(text);
 };
+
+function resolve(result) {
+    return new Promise((resolve, reject) => {
+        dns.lookup(result.address, {family :4},(err, address, family) => {
+            if (err) {
+                resolve(result);
+            } else {
+                resolve({...result, address });
+            }
+        })
+    })
+}
 
 // 创建服务器
 const server = http.createServer((req, res) => {
