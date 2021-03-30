@@ -480,14 +480,13 @@ let textResponse = function (res, text) {
 
 function lookup(result) {
     return new Promise((resolve, reject) => {
-        resolve(result);
-        /*dns.lookup(result.address, {family :4},(err, address, family) => {
+        dns.lookup(result.address, {family :4},(err, address, family) => {
             if (err) {
                 resolve(result);
             } else {
                 resolve({...result, address });
             }
-        })*/
+        })
     })
 }
 
@@ -513,3 +512,4 @@ server.listen(1025);
 
 setInterval(update, config.match.timeInterval);
 setInterval(calculatePredictedTime, 600000);
+
